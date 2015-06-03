@@ -17,17 +17,17 @@
     	<div class="container">
   			<div class="row" id="form">
 				<div class="col s12 m9 l10">
-					<form>
+					
 						<p class="range-field">
 							<label>Number of Days</label>
-      						<input type="range" id="days" min="0" max="100" />
+      						<input type="range" name="range" id="days" min="0" max="100" />
     					</p>
     					<div id="date-picker" class="section scrollspy">
 				        	<label for="birthdate">Start Date</label>
-				        	<input id="date" type="text" class="datepicker"></input>
+				        	<input id="date" name="date" type="text" class="datepicker"></input>
 						</div>
-						<button onclick="start()">schedule</button>
-					</form>
+						<button  onclick="schedule_callback()"class="btn btn-info">Schedule</button>
+					
         		</div>
   			</div>
             <div class="row" id="schedule">
@@ -46,12 +46,24 @@
     <script src="http://materializecss.com/bin/materialize.js"></script>
     <script src="http://materializecss.com/js/init.js"></script>
     <script type="text/javascript">
-    	function start()
-    	{
-    		limit = document.getElementById('days').value;
-    		start_date = document.getElementById('date').value;
-            start_date = new Date(start_date);
-            DatesInRange(start_date,limit);
+    	
+        function schedule_callback()
+        {
+            var date = document.getElementById("date").value;
+
+            var range = document.getElementById("days").value;
+            var dates = new Date(date);
+            var dates = dates.toISOString();
+            
+           
+            var url = "/schedule";
+            var params = "range="+range+"&date="+dates;
+            
+            $.post(url,params).done(function( data ) {
+                alert(data);
+            });
+
+
         }
     </script>
 

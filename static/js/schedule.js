@@ -115,17 +115,22 @@ function sendToServer()
 	var url = "/callback_auth";
 	var params = new Object();
 	params = JSON.stringify(schedule);
+	$.post(url,params).done(function( data ) {
+	  if (data === "redirect")
+	  {
+	  	window.location.assign("/cal");
+	  }
+	});
+	// http.open("POST", url, true);
 
-	http.open("POST", url, true);
-
-	//Send the proper header information along with the request
-	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	// //Send the proper header information along with the request
+	// http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	
 
-	http.onreadystatechange = function() {//Call a function when the state changes.
+	// http.onreadystatechange = function() {//Call a function when the state changes.
 		
-	}
-	http.send(params);
+	// }
+	// http.send(params);
 }
 
 

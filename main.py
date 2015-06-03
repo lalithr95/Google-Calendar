@@ -7,6 +7,8 @@ import tornado.options
 from tornado import gen
 import pymongo
 import motor
+from datetime import date,datetime
+from datetime import timedelta
 from tornado.options import define,options
 
 define("port",default=8000,help="run on this port",type=int)
@@ -22,7 +24,8 @@ class Application(tornado.web.Application):
 			(r"/register",RegisterHandler),
 			(r"/login",LoginHandler),
 			(r"/callback_auth",CallBackHandler),
-			(r"/logout",LogoutHandler)
+			(r"/logout",LogoutHandler),
+			(r"/schedule",ScheduleHandler)
 			
 
 		]
@@ -124,6 +127,8 @@ class CallBackHandler(tornado.web.RequestHandler):
 	@tornado.web.asynchronous
 	@gen.coroutine
 	def post(self):
+		
+
 		users_coll = self.application.db.users 
 
 		user_events_coll = self.application.db.user_events
@@ -134,11 +139,7 @@ class CallBackHandler(tornado.web.RequestHandler):
 			user = yield user_events_coll.find_one({'email':email})
 
 			print user
-			if user['initialized'] :
-				self.redirect("/cal")
-			else:
-				
-				print user
+			if not user['initialized'] :
 				if user:
 					user['events'] = {}
 					user_events=user
@@ -181,25 +182,76 @@ class CallBackHandler(tornado.web.RequestHandler):
 							
 							yield calendar_coll.save(rec)
 
-					#yield users_coll.save(user)
-					# for date in data.keys():
-					# 	rec = user
-					# 	if rec:
-					# 		print rec['events']
-					# 	else:
-					# 		print date
+		self.write("redirect")
 
-					# 	rec['events'][date] = dict()
-					# 	rec['events'][date][timezone] = {email:[]}
-
-						
-					# 	if user_events[date]:
-					# 	 	#rec['events'][timezone][email] = rec['events'][timezone[emai]]
-					# 	 	rec['events'][date][timezone].append(data['date'])
-					# 	print rec
-
-					#yield user_events_coll.save(record)
 					
+	
+
+
+
+class ScheduleHandler(tornado.web.RequestHandler):
+	@tornado.web.authenticated
+	def get(self):
+		self.render("cal.html")
+
+	@tornado.web.asynchronous
+	@gen.coroutine
+	def post(self):
+		limit = self.get_argument("range")
+		limit = int(limit)
+		start_date = self.get_argument("date")
+
+		
+
+		# start_date = datetime.strptime(start_date, '%Y-%m-%d'),isoformat()
+		start_date = start_date[:10]
+		print start_date
+		user_events_coll = self.application.db.user_events
+		count = 0
+		dates = {}
+		# { 
+		# 	alloted : []
+		# 	free : []
+		# }
+		temp_dates = []
+		rec = yield user_events_coll.find_one({'email':self.get_secure_cookie('email')})
+		while count<limit:
+
+			if rec :
+				count+=1
+				
+		 		if not start_date in rec['events'].keys() :
+		 			count+=1
+		 			dates[start_date] = "Free day"
+		 			
+		 			
+		 		else :
+
+		 			dates[start_date] = rec['events'][start_date]
+		 		start_date = datetime.strptime(start_date, '%Y-%m-%d')
+		 		start_date = start_date + timedelta(days=1)
+		 		temp_dates.append(start_date)
+		 		start_date = str(start_date)
+		 		start_date = start_date[:10]
+		 		# print dates
+
+		#print dates
+		temp = dates
+		data = []
+		for key in sorted(temp):
+			tup = (key,temp[key])
+			# tup = tup + str(key) + temp[key]
+			
+			print tup
+			data.append(tup)
+
+		self.render("display.html",data=data)
+
+
+
+
+		
+
 
 
 
