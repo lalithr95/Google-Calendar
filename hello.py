@@ -125,81 +125,29 @@ class CallBackHandler(tornado.web.RequestHandler):
 	@gen.coroutine
 	def post(self):
 		users_coll = self.application.db.users 
-
 		user_events_coll = self.application.db.user_events
-		calendar_coll = self.application.db.calendar
 		if self.get_secure_cookie('email'):
-
 			email = self.get_secure_cookie('email')
 			user = yield user_events_coll.find_one({'email':email})
-
 			print user
-			if user['initialized'] :
-				self.redirect("/cal")
-			else:
+			if user:
+				user_events=user['events']
+				data = json.loads(self.request.body.decode('utf-8'))
+				timezone = dates['timezone']
+				del data['timezone']
+				dates = data.keys()
 				
-				print user
-				if user:
-					user['events'] = {}
-					user_events=user
 
-					data = json.loads(self.request.body.decode('utf-8'))
-					timezone = data['timezone']
-					del data['timezone']
-					dates = data.keys()
+				for date in dates:
+					events = data[date]
+					if not date in user_events.keys():
+						user_events[date] = []
+					for event in events:
+						user_events[date].append(event)
+				user['initialized'] = True
+				yield user_events_coll.save(user)
 
-					#print dates
-
-					for date in dates:
-						events = data[date]
-						if not date in user_events.keys():
-							user_events['events'][date] = []
-						for event in events:
-							user_events['events'][date].append(event)
-					user['initialized'] = True
-					yield user_events_coll.save(user)
-				# for calendar
-
-					
-					
-					for date in dates:
-						rec = yield calendar_coll.find_one({'date':date})
-						if rec:
-							email = email.replace(".","-")
-							events = data[date]
-							if timezone in rec['events'].keys():
-								if not email in rec['events'][timezone].keys():
-									rec['events'][timezone][email] = []
-								for event in events:
-									rec['events'][timezone][email].append(event)
-								
-							else:
-								rec['events'][timezone] = {}
-								rec['events'][timezone][email] = []
-								for event in events:
-									rec['events'][timezone][email].append(event)
-							
-							yield calendar_coll.save(rec)
-
-					#yield users_coll.save(user)
-					# for date in data.keys():
-					# 	rec = user
-					# 	if rec:
-					# 		print rec['events']
-					# 	else:
-					# 		print date
-
-					# 	rec['events'][date] = dict()
-					# 	rec['events'][date][timezone] = {email:[]}
-
-						
-					# 	if user_events[date]:
-					# 	 	#rec['events'][timezone][email] = rec['events'][timezone[emai]]
-					# 	 	rec['events'][date][timezone].append(data['date'])
-					# 	print rec
-
-					#yield user_events_coll.save(record)
-					
+				
 
 
 

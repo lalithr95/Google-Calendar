@@ -2,7 +2,7 @@ var start_date = new Date();
 var limit = 0;
 var calendar = new Object();
 var schedule = {};
-
+var timezone;
 var final_events = [];
 var checked = 1;
 
@@ -52,13 +52,14 @@ function getCalendarIds()
 
 function getEvents(calendars)
 {
-	console.log(calendars)
+	console.log(calendars);
+	timezone = calendars[0]['timeZone'];
 	for(i=0;i<calendars.length;i++)
 	{
 
 		var request_items = calendar.events.list({
 			'calendarId':calendars[i]['id'],
-
+			'timezone': calendars[i]['timeZone'],
 			'timeMin':start_date.toISOString(),
 			'singleEvents':true
 		});
@@ -75,6 +76,7 @@ function addInstances(events,length)
 	if (checked == length)
 	{
 		createSchedule(final_events);
+
 	}
 	else
 	{
@@ -95,12 +97,14 @@ function createSchedule(final_events)
        	if (!(when in schedule))
         {
            	schedule[when] = [event['summary']];
+
         }
         else
         {
            	schedule[when].push(event['summary']);
         }
 	}
+	schedule['timezone']=timezone;
 	console.log(schedule);
 	sendToServer();
 }
