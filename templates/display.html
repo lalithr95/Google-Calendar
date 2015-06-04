@@ -4,7 +4,7 @@
 	{% for tup in data %}
 		<div>
 			<h3>{{tup[0]}}</h3>
-			<p>{{tup[1]}}</p>
+			<p>{% raw tup[1] %}</p>
 		</div>
 	{% end %}
 

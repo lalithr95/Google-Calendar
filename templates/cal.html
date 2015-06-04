@@ -16,8 +16,9 @@
     <main>
     	<div class="container">
   			<div class="row" id="form">
+                <div id="hidden_schedule" >
 				<div class="col s12 m9 l10">
-					
+					   
 						<p class="range-field">
 							<label>Number of Days</label>
       						<input type="range" name="range" id="days" min="0" max="100" />
@@ -26,13 +27,16 @@
 				        	<label for="birthdate">Start Date</label>
 				        	<input id="date" name="date" type="text" class="datepicker"></input>
 						</div>
-						<button  onclick="schedule_callback()"class="btn btn-info">Schedule</button>
+						<button  onclick="schedule_callback()"class="btn btn-info">Schedule</button> 
 					
         		</div>
+            </div>
   			</div>
             <div class="row" id="schedule">
                 <div class="col s12 m9 l10">
                     schedule goes here
+                    <div id="data">
+                    </div>
                 </div>
             </div>
   		</div>
@@ -60,7 +64,9 @@
             var params = "range="+range+"&date="+dates;
             
             $.post(url,params).done(function( data ) {
-                alert(data);
+                $( "#hidden_schedule" ).hide();
+                var content_data = JSON.stringify(data);
+                document.getElementById('data').innerHTML = content_data;
             });
 
 
