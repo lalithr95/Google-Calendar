@@ -7,6 +7,7 @@ import tornado.options
 from tornado import gen
 import pymongo
 import motor
+from bson import json_util
 from datetime import date,datetime
 from datetime import timedelta
 from tornado.options import define,options
@@ -26,7 +27,10 @@ class Application(tornado.web.Application):
 			(r"/login",LoginHandler),
 			(r"/callback_auth",CallBackHandler),
 			(r"/logout",LogoutHandler),
-			(r"/schedule",schedule.ScheduleHandler)
+			(r"/schedule",schedule.ScheduleHandler),
+			(r"/api/schedule_start",ScheduleApiStartHandler),
+			(r"/api/schedule_dates",ScheduleApiDatesHandler),
+			(r"/api/schedule_end",ScheduleApiEndHandler)
 			
 
 		]
@@ -185,6 +189,177 @@ class CallBackHandler(tornado.web.RequestHandler):
 							yield calendar_coll.save(rec)
 							#update user events in calendar collection
 		self.write("redirect")
+
+class ScheduleApiDatesHandler(tornado.web.RequestHandler):
+	@tornado.web.asynchronous
+	@gen.coroutine
+	def get(self):
+		result = dict()
+		result['error'] = []
+		result['events'] = dict()
+		email = self.get_argument('email')
+		date_start = ""
+		date_end = ""
+		try:
+			date_start = self.get_argument('start_date')
+			date_end = self.get_argument('end_date')
+		except:
+			result['error'] = "Start (or) End dates not available"
+		user_event_col = self.application.db.user_events
+		user_rec = yield user_event_col.find_one({'email':email})
+		if user_rec :
+			if date_start != "" and date_end != "" and date_start<= date_end :
+				date_start = str(date_start)
+				date_end = str(date_end)
+				if date_start in user_rec['events'].keys():
+					result['start_date'] = date_start
+					while date_start != date_end :
+						if date_start in user_rec['events'].keys():
+							result['events'][date_start] = user_rec['events'][date_start]
+						next_date = datetime.strptime(date_start, '%Y-%m-%d')
+						next_date = next_date + timedelta(days=1)
+						date_start = str(next_date)
+						date_start = date_start[:10]
+			else :
+				result['error'].append("Start and end date are not informat")
+		else :
+			result['error'] = 'Email not registered'
+
+		new_data = result
+
+				#new_data = json_util.dumps(result,default=json_util.default)
+		self.set_header("X-Frame-Options","SAMEORIGIN")
+		self.set_header("Content-Type","application/json")
+		self.write(json.dumps(new_data))
+class ScheduleApiEndHandler(tornado.web.RequestHandler):
+	@tornado.web.asynchronous
+	@gen.coroutine
+	def get(self):
+		result = dict()
+		result['error'] = []
+		email = self.get_argument('email')
+		end_date = ""
+		days = ""
+		try:
+			days = self.get_argument('days')
+			end_date = self.get_argument('end_date')
+		except:
+			if days == "":
+				days = 7
+		result = dict()
+		days = int(days)
+		if not email :
+			result['error'] = 'Missing email parameter'
+		else :
+			result['email'] = email
+			result['events'] = {}
+			#result['end_date'] = end_date
+			user_event_col = self.application.db.user_events
+			user_rec = yield user_event_col.find_one({'email':email})
+			if user_rec :
+				dates = user_rec['events'].keys()
+				dates.sort()
+
+				if end_date == "":
+					end_date = dates[-1]
+					end_date = str(end_date)
+					for i in range(days):
+						if end_date in user_rec['events'].keys():
+							result['events'][end_date] = user_rec['events'][end_date]
+						next_date = datetime.strptime(end_date, '%Y-%m-%d')
+			 			next_date = next_date - timedelta(days=1)
+						end_date = str(next_date)
+			 			end_date = end_date[:10]
+			 	else :
+			 		#validate date_start
+			 		try:
+			 			end_date = str(end_date)
+				 		if end_date in user_rec['events'].keys():
+				 			result['end_date'] = end_date
+					 		for i in range(days):
+								if end_date in user_rec['events'].keys():
+									result['events'][end_date] = user_rec['events'][end_date]
+								next_date = datetime.strptime(end_date, '%Y-%m-%d')
+					 			next_date = next_date - timedelta(days=1)
+								end_date = str(next_date)
+					 			end_date = end_date[:10]
+					except :
+						result['error'].append("Start date not in format YYYY-MM-DD") 
+
+			else :
+				result['error'] = 'Email not registered'
+
+		new_data = result
+		#new_data = json_util.dumps(result,default=json_util.default)
+		self.set_header("X-Frame-Options","SAMEORIGIN")
+		self.set_header("Content-Type","application/json")
+		self.write(json.dumps(new_data))
+
+
+
+class ScheduleApiStartHandler(tornado.web.RequestHandler):
+	@tornado.web.asynchronous
+	@gen.coroutine
+	def get(self):
+		result = dict()
+		result['error'] = []
+		email = self.get_argument('email')
+		date_start = ""
+		days = ""
+		
+		try:
+			days = self.get_argument('days')
+			date_start = self.get_argument('start_date')
+		except:
+			if days == "":
+				days = 7	
+		result = dict()
+		days = int(days)
+		if not email :
+			result['error'] = 'Missing email parameter'
+		else :
+			result['email'] = email
+			result['events'] = {}
+			
+			user_event_col = self.application.db.user_events
+			user_rec = yield user_event_col.find_one({'email':email})
+			if user_rec :
+				if date_start == "":
+					start_date = date.today().isoformat()
+					start_date = str(start_date)
+					for i in range(days):
+						if start_date in user_rec['events'].keys():
+							result['events'][start_date] = user_rec['events'][start_date]
+						next_date = datetime.strptime(start_date, '%Y-%m-%d')
+			 			next_date = next_date + timedelta(days=1)
+						start_date = str(next_date)
+			 			start_date = start_date[:10]
+			 	else :
+			 		#validate date_start
+			 		try:
+			 			date_start = str(date_start)
+				 		if date_start in user_rec['events'].keys():
+				 			result['start_date'] = date_start
+					 		for i in range(days):
+								if date_start in user_rec['events'].keys():
+									result['events'][date_start] = user_rec['events'][date_start]
+								next_date = datetime.strptime(date_start, '%Y-%m-%d')
+					 			next_date = next_date + timedelta(days=1)
+								date_start = str(next_date)
+					 			date_start = date_start[:10]
+					except :
+						result['error'].append("Start date not in format YYYY-MM-DD") 
+
+			else :
+				result['error'] = 'Email not registered'
+
+		#new_data = result
+		result['events'].keys().sort()
+		new_data = result
+		#new_data = json_util.dumps(result,default=json_util.default)
+		self.set_header("X-Frame-Options","SAMEORIGIN")
+		self.set_header("Content-Type","application/json")
+		self.write(json.dumps(new_data))
 
 
 class LogoutHandler(tornado.web.RequestHandler):

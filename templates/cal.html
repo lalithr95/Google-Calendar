@@ -58,12 +58,19 @@
             var range = document.getElementById("days").value;
             var dates = new Date(date);
             var dates = dates.toISOString();
+            var new_date = "";
+            for(i=0;i<10;i++)
+            {
+                new_date[i] = dates[i];
+            } 
             
-           
-            var url = "/schedule";
-            var params = "range="+range+"&date="+dates;
             
-            $.post(url,params).done(function( data ) {
+            console.log(new_date.toString())
+            var url = "/api/schedule_start";
+            var email = "test@gmail.com"
+            var params = "email="+email+"&days="+range+"&start_date="+new_date;
+            
+            $.get(url,params).done(function( data ) {
                 $( "#hidden_schedule" ).hide();
                 var content_data = JSON.stringify(data);
                 document.getElementById('data').innerHTML = content_data;
